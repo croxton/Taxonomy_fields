@@ -13,6 +13,7 @@ This is a proof-of-concept fieldtype system / hack for [Taxonomy](https://devot-
 3. Move the `fieldtypes` folder to ./system/expressionengine/third_party/taxonomy/fieldtypes
 4. Move the `Taxonomy_field_lib.php` file to ./system/expressionengine/third_party/taxonomy/libraries
 5. Make changes to Taxonomy as set out below.
+6. To use a custom Wygwam config for a specific field, create a new config in Wygwam named taxonomy_[custom_field_name].
 
 #### ./system/expressionengine/third_party/taxonomy/views/edit_tree.php
 
@@ -42,7 +43,7 @@ Add this:
 	
 #### ./system/expressionengine/third_party/taxonomy/mcp.taxonomy.php
 
-At the bottom the constructor `__construct()` add this:
+At the bottom of the constructor `__construct()` add this:
 
 	ee()->load->library('taxonomy_field_lib');
 	

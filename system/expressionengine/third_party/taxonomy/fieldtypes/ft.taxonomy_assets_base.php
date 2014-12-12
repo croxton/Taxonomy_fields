@@ -16,7 +16,7 @@ class Taxonomy_assets_base_ft extends Taxonomy_field {
 
     /**
      * allowed_file_kind
-     * @var boolean
+     * @var string
      */
     protected $allowed_file_kind = 'image';
      
@@ -29,90 +29,85 @@ class Taxonomy_assets_base_ft extends Taxonomy_field {
      * @return  string 
      */
     public function display_field($name, $value) 
-    {
-        // Make sure that Assets is installed and include dependencies
-        //if (array_key_exists('assets', ee()->addons->get_installed()))
-        //{   
-            // default file url
-            $file_url = '';
+    { 
+        // default file url
+        $file_url = '';
 
-            if ( ! self::$assets_init)
-            {   
-                // Assets helper
-                require_once PATH_THIRD.'assets/helper.php';
-                $assets_helper = new Assets_helper;
-                $assets_helper->include_sheet_resources();
+        if ( ! self::$assets_init)
+        {   
+            // Assets helper
+            require_once PATH_THIRD.'assets/helper.php';
+            $assets_helper = new Assets_helper;
+            $assets_helper->include_sheet_resources();
 
-                // Assets library
-                ee()->load->add_package_path(PATH_THIRD.'assets/');
-                ee()->load->library('assets_lib');
+            // Assets library
+            ee()->load->add_package_path(PATH_THIRD.'assets/');
+            ee()->load->library('assets_lib');
 
-                self::$assets_init = TRUE;
-            }
+            self::$assets_init = TRUE;
+        }
 
-            // get selected file url
-            if ( ! empty($value))
+        // get selected file url
+        if ( ! empty($value))
+        {
+            // heavy lifting
+            $file_row   = ee()->assets_lib->get_file_row_by_id($value);
+            $source     = ee()->assets_lib->instantiate_source_type($file_row);
+            $file       = $source->get_file($value);
+
+            if ($file instanceof Assets_base_file)
             {
-                // heavy lifting
-                $file_row   = ee()->assets_lib->get_file_row_by_id($value);
-                $source     = ee()->assets_lib->instantiate_source_type($file_row);
-                $file       = $source->get_file($value);
-
-                if ($file instanceof Assets_base_file)
-                {
-                    // add the file url to the view vars
-                    $file_url = $file->url();
-                }
+                // add the file url to the view vars
+                $file_url = $file->url();
             }
+        }
+    
+        $assets_js = '
+        var $delete  = $("#cf-'.$name.'-delete");
+        var $select  = $("#cf-'.$name.'-select");
         
-            $assets_js = '
-            var $delete  = $("#cf-'.$name.'-delete");
-            var $select  = $("#cf-'.$name.'-select");
-            
-            var sheet'.$name.' = new Assets.Sheet({
- 
-                // optional settings (these are the default values):
-                multiSelect: false,
-                filedirs:    "all", // or array of filedir IDs
-                kinds:       ["'.$this->allowed_file_kind.'"], // string "any", or array of file kinds e.g. ["image", "flash"]
- 
-                // onSelect callback (required):
-                onSelect: function(files) {
+        var sheet'.$name.' = new Assets.Sheet({
 
-                    var $input   = $("input[name=\'node[field_data]['.$name.']\']");
-                    var $preview = $("#cf-'.$name.'-preview");
-                    var $delete  = $("#cf-'.$name.'-delete");
+            // optional settings (these are the default values):
+            multiSelect: false,
+            filedirs:    "all", // or array of filedir IDs
+            kinds:       ["'.$this->allowed_file_kind.'"], // string "any", or array of file kinds e.g. ["image", "flash"]
 
-                    $input.attr("value", files[0].id);
-                    $preview.find("img").attr("src", files[0].url);
-                    $preview.find("p").text(files[0].url);
-                    $preview.css("display", "block");
-                    $delete.css("display", "inline-block"); 
-                }
-            });
-            $select.click(function(){
-                sheet'.$name.'.show();
-                return false;
-            });
-            
-            $delete.click(function(e) {
+            // onSelect callback (required):
+            onSelect: function(files) {
 
                 var $input   = $("input[name=\'node[field_data]['.$name.']\']");
                 var $preview = $("#cf-'.$name.'-preview");
                 var $delete  = $("#cf-'.$name.'-delete");
 
-                $preview.css("display", "none");
-                $input.attr("value", "");
-                $delete.css("display", "none");
-                return false;
-            });
-            ';
-            ee()->cp->add_to_foot('<script type="text/javascript">'.$assets_js.'</script>');
+                $input.attr("value", files[0].id);
+                $preview.find("img").attr("src", files[0].url);
+                $preview.find("p").text(files[0].url);
+                $preview.css("display", "block");
+                $delete.css("display", "inline-block"); 
+            }
+        });
+        $select.click(function(){
+            sheet'.$name.'.show();
+            return false;
+        });
+        
+        $delete.click(function(e) {
 
-            // generate markup
-            return $this->field_html($name, $value, $file_url);
+            var $input   = $("input[name=\'node[field_data]['.$name.']\']");
+            var $preview = $("#cf-'.$name.'-preview");
+            var $delete  = $("#cf-'.$name.'-delete");
 
-        //}
+            $preview.css("display", "none");
+            $input.attr("value", "");
+            $delete.css("display", "none");
+            return false;
+        });
+        ';
+        ee()->cp->add_to_foot('<script type="text/javascript">'.$assets_js.'</script>');
+
+        // generate markup
+        return $this->field_html($name, $value, $file_url);
     }
 
     /**
